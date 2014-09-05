@@ -1,0 +1,207 @@
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{R/Bioconductor package for normalization and differential expression inference in time series gene expression microarray data.}
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{url}
+
+<<style-knitr, eval=TRUE, echo=FALSE, results="asis">>=
+BiocStyle::latex()
+@
+
+
+\begin{document}
+%%\SweaveOpts{concordance=TRUE}
+<<setup, include=FALSE, cache=FALSE>>=
+library(knitr)
+# set global chunk options
+opts_knit$set(base.dir = '.')
+opts_chunk$set(fig.path='figure/minimal-', fig.align='center', fig.show='hold')
+options(replace.assign=TRUE,width=80)
+@
+
+\bioctitle{The \Biocpkg{Rnits} package for normalization and inference of differential expression in time series microarray data. }
+
+
+\author{Dipen P. Sangurdekar \footnote{dipen.sangurdekar@gmail.com}}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction} 
+Gene expression studies interrogating various specific aspects of cellular physiology – cell cycle regulation, dynamic response to perturbations or natural circadian rhythms – involve samples being collected over a time series.  
+A number of methods have been developed to infer differentially expressed genes from temporal transcriptional data. One class of methods involves extending static differential expression methods like ANOVA (\cite{Ma2009})  and empirical Bayes (\cite{Aryee2009,Tai2006}) to temporal data sets. Another approach is to use functional data analysis methods to model the time series data as linear combinations of basis functions (splines) (\cite{Bar-Joseph2002,Bar-Joseph2003,Coffey2011,Liu2009,Storey2005, Leek2006}). Differential expression is then inferred by hypothesis testing on the basis coefficients, empirical Bayes analysis (\cite{Angelini2007,Hong2006}) or by hypothesis testing between two groups (\cite{Bar-Joseph2003,Leek2006,Minas2011,Storey2005,Zhang2010})
+
+
+The method proposed by \cite{Storey2005} and  \cite{Leek2006} utilizes a model driven approach to infer differential expression. The null hypothesis is that for a given gene, the difference in profiles between two treatments (or their deviation from the population average for the gene) is random. They model this scenario by fitting a single average curve, constructed from natural cubic spline basis curves, onto the two profiles. Under the alternative hypothesis, the two profiles arise from distinct underlying biological processes and this is modeled by using different models for each profile. If the gene is significantly DE, the quality of fit (as measured by the sum of squares of the regression residuals) under the alternative model is better than under the null model. To get the significance of the fit statistic, the method instead uses a bootstrapping based approach to simulate expression profiles under the null model and empirically estimates the frequency of the simulated fit statistic being higher than the observed one. A critical parameter in this modeling approach is the dimensionality of the spline basis \emph{p}. \cite{Storey2005} propose a method to pick an optimal model that minimizes the generalized cross-validation error on the top eigenvectors inferred from the data.
+In the current work, we extend the previous work by proposing an alternative approach to model selection for inference in complex temporal data. We identify distinct optimal models for clustered subsets of genes sharing complex patterns based on the statistical power to detect genes with differential trajectories.
+We implement this approach in a statistical package written in \R{}, \Biocpkg{Rnits}, to assist the  research community in the end-to-end genomic analysis of time course experiments, from raw data import normalization, inference of DE and visualization of results.
+
+\section{Method} 
+\subsection{Data preprocessing and normalization} Raw or pre-processed expression data can be imported into \emph{Rnits} either as a data matrix, an RGList object created by the package \emph{limma}, an AffyBatch object (package \emph{affy}) or an eSet object downloaded from NCBI's Gene Expression Omnibus by package \emph{GEOquery}. For all data formats, \emph{Rnits} offers probe filtering and normalization options that are native to the respective packages. Processed data, along with probe and sample phenotype data, is stored as an \emph{Rnits} class object, which inherits all methods from the \emph{ExpressionSet} object in \emph{R} that is commonly used for storing expression data and metadata.This allows expression and metadata retrieval from the object using the standard methods defined for \emph{ExpressionSet} objects. In addition to the standard metadata requirements for the \emph{ExpressionSet} object, building \emph{Rnits} objects requires columns labeled "Sample" and "Time" in the phenotype data matrix, and a column labeled "GeneName" for the probe data matrix (for gene level summarization). One of the time series experiments may be labeled as 'control' for the purpose of clustering data. Inference can be done at the probe level or at the gene level if multiple probes represent a single gene. For gene level analysis, probe data is collapsed into a gene level summary using the robust Tukey Biweight estimator, which penalizes outlier values. For analysis, the distinct time series experiments must have been sampled at the same points.   
+
+\subsection{B-spline basis model based hypothesis testing} 
+The analysis approach is to model the time course data under the null hypothesis that individual gene expression trajectories from distinct sets is a realization of the same underlying basis trajectory modeled as a B-spline curve. Under the alternative hypothesis, each series is modeled as a distinct underlying basis.  \cite{Storey2005} et al describe a method of selecting the optimal B-spline basis model $\mathcal{L}$. For each data set, the top eigenvectors are computed and the set of models $\mathcal{\overline{L}}$ are used to compute the generalized cross-validation error using the eigenvectors as predicted variables. For each data set, the model that minimizes the cross-validated error across all top components is chosen as optimal and the largest optimal model among all data sets is chosen (\emph{Rnits.gcv}). We extend this work to develop a parallel approach for selecting the optimal model based on the power of inferring differentially expressed genes. \emph{Rnits.power}. A series of candidate models $\mathcal{\overline{L}}$ are evaluated on the entire data set and optimal models are selected based on the distribution of the p-values of fit.   \subsection{Clustering} In the first step of this approach, the genes (or probes) may be clustered. Clustering allows models of varying complexity to be selected to represent the diverse expression patterns observed within the data. Each gene/probe is assigned to one of $K$ distinct clusters using k-means clustering on gene centered data (either all the series or based on a single "control" series). The total number of clusters may be provided by the user as an argument or is determined empirically as twice the number of eigenvectors required to explain 70\% of variation in the time series labeled as control or the entire data set. If any of the resulting clusters have less than 500 genes, clustering is iteratively repeated with one less initial cluster centroid.    
+
+\subsection{Candidate model evaluation} 
+The size $r$ of the individual time series experiment  determines the set of candidate B-spline models that can be investigated. Each model $\mathcal{L}(c, p, r)$ is defined by its degree of curvature \emph{c} and the degrees of freedom \emph{p} i.e. the number of basis splines used. The rank constrains the curvature and the number of basis splines as follows. For a given matrix with rank $r$, the set of candidate models $\mathcal{\overline{L}}$ were:  
+
+\begin{equation} \mathcal{\overline{L}}(c, p, r) \left\{\begin{matrix} 3 \leq p \leq min(8, r-2)\\ 2 \leq c \leq min(5, p-1) \end{matrix}\right. \end{equation}  
+
+where each model was constrained to have a maximum degree of curvature of 5 and maximum number of basis splines at 8. Whenever sufficient degrees of freedom were available to allow manual placement of knots ($p - c - 1 > 0$), knots were chosen based on which time points had the maximum inflection.     For each cluster $k$ (or for the entire data), each model $\mathcal{L} \in \mathcal{\overline{L}}$ or the optimal model obtained by generalized cross-validation was evaluated as follows: 
+
+\begin{itemize} 
+\item The gene expression data matrix for series \emph{s} can be represented as $\mathbf{Y}_{m_{k}n}$ where \emph{m} represents the number of probes (or genes) in cluster $k$, and \emph{n} equals size of the data series. The candidate model $\mathcal{L}$ is represented by its B-spline basis $\mathbf{X}_{pn}^{\mathcal{L}}$. For models with larger basis splines, knot placement is guided by regions of higher curvature.   
+
+\item Under the null model of no differential expression between the different time series, the distinct profiles are assumed to be generated from the same underlying curve, and the expression matrix for all series $\mathbf{Y}_{mn}$ is fit as follows:  
+\begin{equation} \mathbf{Y}_{mn} = \widehat{\beta_{mn}} \mathbf{X}_{pn}^{\mathcal{L}} + \mathbf{E}_{mn} = \widehat{\mathbf{Y}}_{null} + \mathbf{E}_{null} \end{equation}  
+
+\item Under the alternate hypothesis, for each individual series $\emph{s}\in (1, S)$ , we fit a distinct curve and the individual data matrix is fit as follows  
+\begin{equation} \mathbf{Y}_{mr} = \widehat{\beta_{mr}} \mathbf{X}_{pr}^{\mathcal{L}} + \mathbf{E}_{mr} = \widehat{\mathbf{Y}}_{alt} + \mathbf{E}_{alt} \end{equation}  
+
+\item The two models are evaluated using a ratio statistic $F_{k}^{\mathcal{L}}$  
+\begin{equation} \mathcal{F}_{k}^{\mathcal{L}} = \dfrac{\sum^{r} \mathbf{E}_{null}^{2} - \sum^{s} \sum^{r} \mathbf{E}_{alt}^{2}}{\sum^{s} \sum^{r} \mathbf{E}_{alt}^{2} + s_{0}} \end{equation}  
+where $\sum^{r} \mathbf{E}_{null}^{2}$ is the vector of sum of square of residuals under the null hypothesis for all genes in cluster $k$ and $\sum^{s} \sum^{r} \mathbf{E}_{alt}^{2}$ is the sum of squared residuals for each gene in cluster $k$ added over all series $s$. We add a variance stabilizing factor to the denominator $s_{0}$ computed as described by \cite{Tusher2001}.  \end{itemize} 
+
+To compute p-values for the ratio statistic, we use the bootstrap approach as described by \cite{Storey2005}. First the residuals under the alternate model $E_{alt}$ are standardized to correct for heteroskedasticity for each series. This penalizes the models with larger basis splines by increasing the effective size of their residuals.  
+
+\begin{equation} \mathbf{E}_{alt}^{'} = \frac{\mathbf{E}_{alt}}{\sqrt{1-X(X^{T}X)^{-1}X^{T}}} \end{equation} 
+
+For each bootstrap iteration $b$, a synthetic null data set is constructed by adding the bootstrapped studentized residuals to the null fit.   \begin{equation} \mathbf{Y}_{null}^{*} = \widehat{\mathbf{Y}}_{null} + \mathbf{E}_{alt}^{'*} \end{equation} 
+
+Eqn (2)-(4) are repeated for each iteration and ratio statistics $\mathcal{F}_{k}^{\mathcal{L*}}$ under the null hypothesis of no differential expression are computed.  Empirical p-values are computed for the observed ratio statistic based on the distribution of the simulated ones under the null hypothesis.  
+
+\begin{equation} \mathcal{P}_{k}^{\mathcal{L}} = \frac{\#(\mathcal{F}_{k}^{\mathcal{L*}} > \mathcal{F}_{k}^{\mathcal{L}})}{B} \end{equation} 
+
+where $B$ are the number of bootstrap iterations.  
+
+\subsection{Model Selection} 
+For each cluster $k$, p-values are similarly calculated for each model $\mathcal{L} \in \mathcal{\overline{L}}$. The significance of each model fit is a function of the size of the studentized residuals under the null and alternative hypotheses. While more complex models (larger number of basis functions) may yield smaller residuals during the alternative fit, these may get heavily penalized during correction for heteroskedasticity, leading to low statistical power. At the other extreme, an insufficiently complex model may not effectively capture the complexity of the expression trajectories that may lead to larger residuals and lack of power. To alleviate this effect, we select the model $\mathcal{L}$ which results in the maximum power, as determined by the number of genes inferred at an estimated False Discovery Rate $< 5\%$
+
+\section{Expression profiling in Yeast in a chemostat perturbation experiment}
+We applied the \emph{Bspline} methods to time course expression data tracking the glucose perturbation responses of a wild type yeast strain grown at steady state in a chemostat with galactose as the carbon source (\cite{ronen2006transcriptional}). Two glucose concentrations (effective concentration of 0.2 g/l and 2 g/l) were used as pulses and responses were tracked at 10, 15, 20, 30, 45, 90, 120 and 150 minutes post each treatment. We obtained the published microarray data from NCBI Gene Expression Omnibus (GEO accession GSE4158) and analyzed it using \emph{Rnits}. 
+
+\subsection{Data preparation}
+First, we download the data from GEO and format it.
+
+<<loaddata, cache=TRUE, warning=FALSE, tidy=TRUE, dependson='data_import'>>=
+# Download NCBI GEO data with GEOquery
+library(knitr)
+rm(list = ls())
+library(GEOquery)
+library(stringr)
+library(Rnits)
+gds <- getGEO('GSE4158', AnnotGPL = FALSE)[[1]]
+class(gds)
+gds
+
+# Extract non-replicate samples
+pdata <- pData(gds)
+filt <- pdata$characteristics_ch2 %in% names(which(table(pdata$characteristics_ch2) == 2))
+gds <- gds[, filt]
+pdata <- pData(gds)
+time <- as.numeric(str_extract(pdata$characteristics_ch2, "\\d+"))
+sample <- rep("2g/l", length(time))
+sample[grep("0.2g/l", gds[["title"]])] <- "0.2g/l"
+
+# Format phenotype data with time and sample information
+gds[["Time"]] <- time
+gds[["Sample"]] <- sample
+dat <- gds
+fData(dat)["Gene Symbol"] <- fData(dat)$ORF
+@
+
+\subsection{Running Rnits}
+\subsubsection{Build Rnits object from \Rclass{ExpressionSet} or \Rclass{data matrix}}
+Next we build the \Rclass{Rnits} object
+<<buildrnitsobj, tidy=TRUE, cache=TRUE, dependson='loaddata'>>=
+# Build rnits data object from formatted data (samples can be in any order)
+# and between-array normalization.
+rnitsobj = build.Rnits(dat[, sample(ncol(dat))], logscale = TRUE, normmethod = "Between")
+rnitsobj
+
+
+# Alternatively, we can also build the object from just a data matrix, by supplying the "probedata" and "phenodata" tables
+datdf <-  exprs(dat)
+rownames(datdf) <- fData(dat)$ID
+probedata <- data.frame(ProbeID=fData(dat)$ID, GeneName=fData(dat)$ORF)
+phenodata <- pData(dat)
+rnitsobj = build.Rnits(datdf, probedata = probedata, phenodata = phenodata, logscale = TRUE, normmethod = 'Between')
+
+# Extract normalized expression values
+lr <- getLR(rnitsobj)
+head(lr)
+
+# Impute missing values using K-nn imputation
+lr <- getLR(rnitsobj, impute = TRUE)
+head(lr)
+
+@
+
+\subsubsection{Fitting the model}
+Next fit the model using gene-level summarization and by clustering all genes.
+
+<<fit_model, cache=TRUE, fig.keep='first', dependson='buildrnitsobj'>>=
+
+# Fit model using gene-level summarization
+rnitsobj <- fit(rnitsobj, gene.level = TRUE, clusterallsamples = TRUE)
+@
+
+The model may be fit using no clustering of samples, or by precomputing the optimal model using the method of \cite{Storey2005}.
+
+<<fit_model_noclustering, eval=FALSE, dependson='buildrnitsobj'>>=
+rnitsobj_nocl <- fit(rnitsobj, gene.level = TRUE, clusterallsamples = FALSE)
+
+opt_model <- calculateGCV(rnitsobj)
+rnitsobj_optmodel <- fit(rnitsobj, gene.level = TRUE, model = opt_model)
+@
+
+\subsubsection{Get top genes and other fit summary statistics}
+<<modelsummary, cache=TRUE, dependson='fit_model',  tidy=TRUE>>=
+
+# Get pvalues from fitted model
+pval <- getPval(rnitsobj)
+head(pval)
+
+# Get ratio statistics from fitted model
+stat <- getStat(rnitsobj)
+head(stat)
+
+
+# If clustering was used, check the cluster gene distribution
+table(getCID(rnitsobj))
+
+# P-values, ratio statistics and cluster ID's can be retrieved for all genes together
+fitdata <- getFitModel(rnitsobj)
+head(fitdata)
+
+# View summary of top genes
+summary(rnitsobj, top = 10)
+
+# Extract data of top genes (5% FDR)
+td <- topData(rnitsobj, fdr = 5)
+head(td)
+@
+
+Next we plot the results for the top 16 differentially expressed genes by FDR
+<<plotresults, dependson='modelsummary', cache=TRUE, tidy=TRUE>>=
+# Plot top genes trajectories
+plotResults(rnitsobj, top = 16)
+
+
+@
+
+
+<<sessionInfo>>=
+sessionInfo()
+@
+
+\section{Summary} 
+
+Dynamic changes in transcriptional programs to changing stimulus or cell cycle stages necessitate an experimental design that tracks expression changes over a period of time. There are often constrains on the replication levels in such designs, posing a challenging inference problem. A number of methods have been developed to infer differential expression between conditions. We extend a previously developed method by \cite{Storey2005} of using B-splines to perform hypothesis testing. We extended the method to include a model selection step that optimizes for distinct subsets within the expression data, corresponding to diverse transcriptional regulatory patterns in cells. We present this method as an comprehensive analysis R package \Biocpkg{Rnits} to enable the data import, pre-processing, normalization, analysis and visualization of gene expression data from a variety of sources (GEO, raw or normalized data tables).  
+
+
+\bibliography{Bibliography}
+\end{document}

@@ -1,0 +1,18 @@
+Package: Rnits
+Type: Package
+Title: R Normalization and Inference of Time Series data
+Version: 0.99.4
+Date: 2014-08-21
+Author: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
+Maintainer: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
+Depends: R (>= 3.1.0), Biobase, ggplot2, limma, methods
+Imports: affy, boot, impute, splines, graphics, qvalue, reshape2
+Suggests: BiocStyle, knitr, GEOquery, stringr
+Description: R/Bioconductor package for normalization, curve
+        registration and inference in time course gene expression data
+biocViews: GeneExpression, Microarray, TimeCourse,
+        DifferentialExpression, Normalization
+Lazyload: yes
+LazyData: yes
+License: GPL-3
+VignetteBuilder: knitr
