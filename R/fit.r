@@ -119,14 +119,15 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
   
   callData <- object@callData
   Nc <- callData$Nc
+  Nrep <- callData$Nrep
   Nsets <- callData$Nsets
   samples <- callData$sample_names
   breaks <- callData$breaks
-  timevec <- callData$time_vec
+  timevec <- rep(callData$time_vec, Nrep)
   control <- callData$control_samp
   
   ## Construct matrix of model designs
-  maxdf <- min(Nc - 2, 8)
+  maxdf <- min(Nc/Nrep - 2, 8)
   dfvec = degvec = c()
   for (df in seq(3, maxdf)) {
     dfvec = c(dfvec, df:maxdf)
@@ -190,12 +191,12 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
     for (id in 1:nrow(idlist)) {
       if (verbatim) 
         cat("Model", id, "|", "Degree =", idlist[id, 1], ", DF = ", idlist[id, 2], "\n") 
-                                                                           
+      
       
       ## Set basis function
       X = bs(timevec, degree = idlist[id, 1], df = idlist[id, 2], 
              knots = placeKnots(inpdata[, control], idlist[id, 1], idlist[id, 2], timevec), intercept = TRUE) 
-                                                                                             
+      
       
       ## Fit model
       s0 = 0  # Initially compute s0
@@ -225,7 +226,7 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
     } 
     # Select model based on power
     siggene_count <- apply(pcomb.clus, 2, function(x) sum(p.adjust(x, "fdr") >= 0.1))
-                                                            
+    
     if (sum(siggene_count == min(siggene_count)) == 1) {
       mod.pick <- which.min(siggene_count)
     } else {
@@ -256,7 +257,7 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
   object@fitData$fit <- data.frame(Ratio.statistic = ratiocomb, p.value = pcomb, 
                                    clusterID = k.clus$cluster, row.names = rownames(lr))
   object@fitData$clusters <- data.frame(clusterModel.degree = clus.models[, 1], clusterModel.df = clus.models[, 2])
-                                                                          
+  
   object@callData$fit.model <- TRUE
   
   
