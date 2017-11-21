@@ -178,5 +178,8 @@ placeKnots <- function(cdata, deg, df, timevec) {
         diffvec[k - 2] = (mean(cdata[, k] - cdata[, k - 1]) * mean(cdata[, k] - cdata[, 
             k + 1]))
     }
-    return(timevec[order(diffvec, decreasing = TRUE)[1:nknots] + 2])
+    out <- timevec[order(diffvec, decreasing = TRUE)[1:nknots] + 2]
+    if(out==max(timevec)) out <- max(timevec)-1
+    if(out==min(timevec)) out <- min(timevec)+1 # avoid edge cases
+    return(out)
 } 

@@ -1,8 +1,8 @@
 Package: Rnits
 Type: Package
 Title: R Normalization and Inference of Time Series data
-Version: 1.13.0
-Date: 2014-08-21
+Version: 1.11.2
+Date: 2017-07-17
 Author: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
 Maintainer: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
 Depends: R (>= 3.1.0), Biobase, ggplot2, limma, methods
@@ -16,3 +16,5 @@ Lazyload: yes
 LazyData: yes
 License: GPL-3
 VignetteBuilder: knitr
+NeedsCompilation: no
+Packaged: 2017-04-24 23:55:53 UTC; biocbuild
