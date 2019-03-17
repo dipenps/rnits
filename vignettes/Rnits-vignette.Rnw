@@ -128,7 +128,7 @@ datdf <-  exprs(dat)
 rownames(datdf) <- fData(dat)$ID
 probedata <- data.frame(ProbeID=fData(dat)$ID, GeneName=fData(dat)$ORF)
 phenodata <- pData(dat)
-rnitsobj = build.Rnits(datdf, probedata = probedata, phenodata = phenodata, logscale = TRUE, normmethod = 'Between')
+rnitsobj0 = build.Rnits(datdf, probedata = probedata, phenodata = phenodata, logscale = TRUE, normmethod = 'Between')
 
 # Extract normalized expression values
 lr <- getLR(rnitsobj)
@@ -146,16 +146,16 @@ Next fit the model using gene-level summarization and by clustering all genes.
 <<fit_model, cache=TRUE, fig.keep='first', dependson='buildrnitsobj'>>=
 
 # Fit model using gene-level summarization
-rnitsobj <- fit(rnitsobj, gene.level = TRUE, clusterallsamples = TRUE)
+rnitsobj <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = TRUE)
 @
 
 The model may be fit using no clustering of samples, or by precomputing the optimal model using the method of \cite{Storey2005}.
 
 <<fit_model_noclustering, eval=FALSE, dependson='buildrnitsobj'>>=
-rnitsobj_nocl <- fit(rnitsobj, gene.level = TRUE, clusterallsamples = FALSE)
+rnitsobj_nocl <- fit(rnitsobj0, gene.level = TRUE, clusterallsamples = FALSE)
 
-opt_model <- calculateGCV(rnitsobj)
-rnitsobj_optmodel <- fit(rnitsobj, gene.level = TRUE, model = opt_model)
+opt_model <- calculateGCV(rnitsobj0)
+rnitsobj_optmodel <- fit(rnitsobj0, gene.level = TRUE, model = opt_model)
 @
 
 \subsubsection{Get top genes and other fit summary statistics}

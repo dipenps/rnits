@@ -205,7 +205,10 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
       ratiostar = modelFit$ratiostar
       pcomb.clus = cbind(pcomb.clus, getp(ratio, ratiostar))
       rcomb.clus = cbind(rcomb.clus, ratio)
-      pi0.clus <- c(pi0.clus, qvalue(getp(ratio, ratiostar))$pi0)
+      
+      # Bioc version 3.9. pi0 estimation is deprecated (March 2019)
+      #pi0.clus <- c(pi0.clus, qvalue(getp(ratio, ratiostar))$pi0)
+      pi0.clus <- c(pi0.clus, 1)
       if (verbatim) 
         cat(" || computed s0 is ", round(modelFit$s0, digits = 3), "\n")
       if (verbatim) 
@@ -253,7 +256,9 @@ setMethod("fit", "Rnits", function(object, cluster = TRUE, B = 100, verbatim = F
     ratiocomb[id.nc] = rcomb.clus[, mod.pick]
   }
   
-  cat("Estimated proportion of null genes is", round(100 * qvalue(pcomb)$pi0, 2), "%\n")
+  #cat("Estimated proportion of null genes is", round(100 * qvalue(pcomb)$pi0, 2), "%\n")
+  cat("Estimated proportion of null genes is", round(100 * 1, 2), "%\n")
+
   object@fitData$fit <- data.frame(Ratio.statistic = ratiocomb, p.value = pcomb, 
                                    clusterID = k.clus$cluster, row.names = rownames(lr))
   object@fitData$clusters <- data.frame(clusterModel.degree = clus.models[, 1], clusterModel.df = clus.models[, 2])
