@@ -179,7 +179,7 @@ placeKnots <- function(cdata, deg, df, timevec) {
             k + 1]))
     }
     out <- timevec[order(diffvec, decreasing = TRUE)[1:nknots] + 2]
-    if(out==max(timevec)) out <- max(timevec)-1
-    if(out==min(timevec)) out <- min(timevec)+1 # avoid edge cases
+    if(any(out==max(timevec))) out[out==max(timevec)] <- max(timevec)-1
+    if(any(out==min(timevec))) out[out==min(timevec)] <- min(timevec)+1 # avoid edge cases
     return(out)
 } 
