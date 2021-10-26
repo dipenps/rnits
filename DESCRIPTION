@@ -1,7 +1,7 @@
 Package: Rnits
 Type: Package
 Title: R Normalization and Inference of Time Series data
-Version: 1.27.0
+Version: 1.28.0
 Date: 2019-03-16
 Author: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
 Maintainer: Dipen P. Sangurdekar <dipen.sangurdekar@gmail.com>
