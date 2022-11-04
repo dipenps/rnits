@@ -66,7 +66,7 @@ build.Rnits <- function(obj, probedata = NULL, phenodata = NULL, filter = NULL, 
   callData <- list()
   fdata <- pdata <- AnnotatedDataFrame(data = data.frame())
   ## Check necessary arguments
-  if (class(obj) != "ExpressionSet") {
+  if (!"ExpressionSet" %in% class(obj)) {
     if (is.null(phenodata)) 
       stop("Phenotype data table must be provided for object\n")
     if (!"Sample" %in% colnames(phenodata)) 
@@ -76,7 +76,7 @@ build.Rnits <- function(obj, probedata = NULL, phenodata = NULL, filter = NULL, 
   }
   if (!is.null(probedata) & is.null(probedata$ProbeID)) 
     stop("Probe data table has no column named \"ProbeID")
-  if (class(obj) == "data.frame" | class(obj) == "matrix") {
+  if ("data.frame" %in% class(obj) | "matrix" %in% class(obj)) {
     cat("Log scale is", logscale, "\n")
     ## Data frame checks
     if (nrow(phenodata) != ncol(obj)) 
