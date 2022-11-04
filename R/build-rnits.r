@@ -136,7 +136,7 @@ build.Rnits <- function(obj, probedata = NULL, phenodata = NULL, filter = NULL, 
           to <- to[-probefilt, ]
       }
     }
-  } else if (class(obj) == "RGList") {
+  } else if ("RGList" %in% class(obj)) {
     callData$Type = "RGList"
     ## RGlist checks
     if (nrow(phenodata) != ncol(obj)) 
@@ -258,7 +258,7 @@ build.Rnits <- function(obj, probedata = NULL, phenodata = NULL, filter = NULL, 
     pdata <- AnnotatedDataFrame(data = phenodata)
     to <- new("Rnits", rawTwoColor = obj, exprs = lr, phenoData = pdata, featureData = fdata, 
               callData = callData)
-  } else if (class(obj) == "AffyBatch") {
+  } else if ("AffyBatch" %in% class(obj)) {
     calldata$Type = "AffyBatch"
     nmOpt <- bgOpt <- TRUE
     if (is.null(normalize)) {
@@ -272,7 +272,7 @@ build.Rnits <- function(obj, probedata = NULL, phenodata = NULL, filter = NULL, 
     rmaset <- rma(obj, verbose = FALSE, background = bgOpt, normalize = nmOpt)
     to <- new("Rnits", rawAffy = obj, exprs = exprs(rmaset), featureData = featureData(rmaset), 
               phenoData = phenoData(rmaset), callData = callData)
-  } else if (class(obj) == "ExpressionSet") {
+  } else if ("ExpressionSet" %in% class(obj)) {
     callData$Type = "ExpressionSet"
     phenodata = pData(obj)
     featuredata = fData(obj)
